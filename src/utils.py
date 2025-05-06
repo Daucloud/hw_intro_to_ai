@@ -1,24 +1,20 @@
 from gensim.models import KeyedVectors
 import numpy as np
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import torch
 
 PAD="<PAD>"
 UNK="<UNK>"
 
-def build_vocab(path="Dataset/train.txt"):
-    vocab = set()
+def build_word2idx(path="Dataset/train.txt"):
+    word2idx = {PAD: 0, UNK: 1}
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             words = line.strip().split()
-            vocab.update(words[1:])
-    word2idx = {PAD: 0, UNK: 1}
-    for i, word in enumerate(vocab):
-        word2idx[word] = i + 2
-    idx2word = {0: PAD, 1: UNK}
-    for i, word in enumerate(vocab):
-        idx2word[i + 2] = word
-    return vocab, word2idx, idx2word
+            for word in words[1:]:
+                if word not in word2idx:
+                    word2idx[word] = len(word2idx)
+    return word2idx
 
 def load_word2vec(path="Dataset/wiki_word2vec_50.bin"):
     word2vec = KeyedVectors.load_word2vec_format(path, binary=True)
@@ -37,8 +33,8 @@ def load_data(path):
         return [(int(words[0]), words[1:]) for line in f for words in [line.strip().split()]]
 
 class SentimentDataset(Dataset):
-    def __init__(self, data, word2idx, max_len):
-        self.data = data
+    def __init__(self, data_path, word2idx, max_len):
+        self.data = load_data(data_path)
         self.word2idx = word2idx
         self.max_len = max_len
 
@@ -46,8 +42,13 @@ class SentimentDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        label, words = self.data[idx]
-        words = [self.word2idx.get(word, self.word2idx[UNK]) for word in words]
+        label_int, words_raw = self.data[idx]
+        label = int(label_int)
+
+        words = [self.word2idx.get(word, self.word2idx.get(UNK, 1)) for word in words_raw]
         words = words[:self.max_len]
-        words = words + [self.word2idx[PAD]] * (self.max_len - len(words))
-        return torch.LongTensor(words), torch.LongTensor(label)
+        padded_indices = words + [self.word2idx.get(PAD, 0)] * (self.max_len - len(words))
+
+        sequence_tensor = torch.tensor(padded_indices, dtype=torch.long)
+        label_tensor = torch.tensor(label, dtype=torch.float)
+        return sequence_tensor, label_tensor

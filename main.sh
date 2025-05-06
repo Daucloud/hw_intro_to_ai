@@ -1,7 +1,7 @@
 #! /bin/bash
 
 python src/main.py \
-    --model_type cnn \
+    --model_type rnn \
     --data_dir Dataset \
     --embedding_file wiki_word2vec_50.bin \
     --num_epochs 10 \
@@ -16,7 +16,7 @@ python src/main.py \
     --cnn_num_filters 100 \
     --cnn_filter_sizes 3,4,5 \
     --rnn_hidden_dim 128 \
-    --rnn_num_layers 2 \
+    --rnn_num_layers 1 \
     --rnn_bidirectional True \
     --rnn_type GRU \
     --mlp_hidden_dim 64 \

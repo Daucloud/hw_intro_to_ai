@@ -5,12 +5,13 @@ import torch.nn as nn
 import torch.optim as optim
 import click
 import wandb
+from torch.utils.data import DataLoader
 from rich.console import Console
 from rich.text import Text
 import numpy as np
 
 from model import CNN, RNN, MLP
-from utils import build_vocab
+from utils import build_word2idx, build_embedding, load_word2vec, SentimentDataset
 from train import train_model
 from evaluate import evaluate_model
 
@@ -81,30 +82,33 @@ def main(**cli_config):
     """Main script to train and evaluate sentiment analysis models."""
 
     config = {**CONFIG, **{k: v for k, v in cli_config.items() if v is not None}}
-    if 'cnn_filter_sizes' not in cli_config :
-        config['cnn_filter_sizes'] = CONFIG['cnn_filter_sizes']
+    if cli_config['cnn_filter_sizes'] is not None:
+        config['cnn_filter_sizes'] = [int(size) for size in cli_config['cnn_filter_sizes'].split(',')]
 
+    run = None  
 
     if config['wandb_disabled']:
         os.environ["WANDB_DISABLED"] = "true"
         console.print(Text("Weights & Biases logging is DISABLED.", style="bold yellow"))
-
-
-    run_name = f"{config['model_type']}-lr{config['learning_rate']}-bs{config['batch_size']}-{int(time.time())}"
-    try:
-        run = wandb.init(
-            project=config['wandb_project'],
-            entity=config.get('wandb_entity'),
-            config=config,
-            name=run_name,
-            notes=config['wandb_notes'],
-            reinit=True,
-            save_code=True
-        )
-        if run:
-            console.print(Text(f"W&B Run URL: {run.get_url()}", style=f"link {run.get_url()}"))
-    except Exception as e:
-        console.print(Text(f"Could not initialize W&B: {e}. Running without W&B logging.", style="bold red"))
+    else:
+        run_name = f"{config['model_type']}_{config.get('rnn_type','').lower()}_lr{config['learning_rate']}_bs{config['batch_size']}_{int(time.time())}"
+        if config['model_type'] != 'rnn':
+            run_name = f"{config['model_type']}_lr{config['learning_rate']}_bs{config['batch_size']}_{int(time.time())}"
+        try:
+            run = wandb.init(
+                project=config['wandb_project'],
+                entity=config.get('wandb_entity'),
+                config=config,
+                name=run_name,
+                notes=config['wandb_notes'],
+                reinit=True,
+                save_code=True
+            )
+            if run:
+                console.print(Text(f"W&B Run URL: {run.url}", style=f"link {run.url}"))
+        except Exception as e:
+            console.print(Text(f"Could not initialize W&B: {e}. Disabling W&B for this run.", style="bold red"))
+            os.environ["WANDB_DISABLED"] = "true"
 
     torch.manual_seed(config['seed'])
     np.random.seed(config['seed'])
@@ -128,14 +132,13 @@ def main(**cli_config):
     os.makedirs(config['model_save_dir'], exist_ok=True)
 
     console.print("Loading and preprocessing data...")
-    train_data_list = load_data_to_list(train_file_path)
-    word2idx, idx2word = build_vocab(train_data_list)
+    word2idx= build_word2idx(train_file_path)
     vocab_size = len(word2idx)
     console.print(f"Vocabulary size: {vocab_size}")
 
-    pretrained_embedding_matrix = load_and_build_embedding_matrix(
-        embedding_file_path, word2idx, config['embedding_dim']
-    )
+    pretrained_embedding_matrix = load_word2vec(embedding_file_path)
+    pretrained_embedding_matrix = build_embedding(word2idx, pretrained_embedding_matrix)
+    
     if isinstance(pretrained_embedding_matrix, torch.Tensor):
         pretrained_embedding_matrix_np = pretrained_embedding_matrix.numpy()
     else:
@@ -143,9 +146,9 @@ def main(**cli_config):
 
 
     console.print("Creating data loaders...")
-    train_loader = create_data_loader(train_file_path, word2idx, config['max_len'], config['batch_size'], shuffle=True)
-    val_loader = create_data_loader(valid_file_path, word2idx, config['max_len'], config['batch_size'], shuffle=False)
-    test_loader = create_data_loader(test_file_path, word2idx, config['max_len'], config['batch_size'], shuffle=False)
+    train_loader = DataLoader(SentimentDataset(train_file_path, word2idx, config['max_len']), config['batch_size'], shuffle=True)
+    val_loader = DataLoader(SentimentDataset(valid_file_path, word2idx, config['max_len']), config['batch_size'], shuffle=False)
+    test_loader = DataLoader(SentimentDataset(test_file_path, word2idx, config['max_len']), config['batch_size'], shuffle=False)
 
     output_dim = 1
     model = None
