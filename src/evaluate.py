@@ -48,11 +48,11 @@ def evaluate_model(model, data_loader, criterion, device, is_test=False, model_n
         console.print(results_table)
 
         if wandb.run:
-            wandb.summary[f"test_loss_{model_name.lower().replace('-','_')}"] = avg_loss
-            wandb.summary[f"test_accuracy_{model_name.lower().replace('-','_')}"] = accuracy
-            wandb.summary[f"test_f1_{model_name.lower().replace('-','_')}"] = f1
-            wandb.summary[f"test_precision_{model_name.lower().replace('-','_')}"] = precision
-            wandb.summary[f"test_recall_{model_name.lower().replace('-','_')}"] = recall
+            wandb.summary["test_loss"] = avg_loss
+            wandb.summary["test_accuracy"] = accuracy
+            wandb.summary["test_f1"] = f1
+            wandb.summary["test_precision"] = precision
+            wandb.summary["test_recall"] = recall
             console.print(Text(f"Logged test metrics for {model_name} to W&B Summary.", style="purple"))
 
     return avg_loss, accuracy, precision, recall, f1 

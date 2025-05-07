@@ -93,7 +93,7 @@ def main(**cli_config):
     else:
         run_name = f"{config['model_type']}_{config.get('rnn_type','').lower()}_lr{config['learning_rate']}_bs{config['batch_size']}_{int(time.time())}"
         if config['model_type'] != 'rnn':
-            run_name = f"{config['model_type']}_lr{config['learning_rate']}_bs{config['batch_size']}_{int(time.time())}"
+            run_name = f"{config['model_type']}_lr{config['learning_rate']}_bs{config['batch_size']}_ep{config['num_epochs']}_{int(time.time())}"
         try:
             run = wandb.init(
                 project=config['wandb_project'],
