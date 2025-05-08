@@ -17,8 +17,7 @@ def build_word2idx(path="Dataset/train.txt"):
     return word2idx
 
 def load_word2vec(path="Dataset/wiki_word2vec_50.bin"):
-    word2vec = KeyedVectors.load_word2vec_format(path, binary=True)
-    return word2vec
+    return KeyedVectors.load_word2vec_format(path, binary=True)
 
 def build_embedding(word2idx, word2vec):
     embedding = np.zeros((len(word2idx), word2vec.vector_size))

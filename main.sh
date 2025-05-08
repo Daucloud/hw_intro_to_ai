@@ -16,13 +16,14 @@ python src/main.py \
     --embedding_dim 50 \
     --max_len 128 \
     --freeze_embeddings True \
-    --early_stopping_patience 5 \
+    --early_stopping_patience 10 \
     --seed 42 \
-    --cnn_num_filters 100 \
+    --cnn_num_filters 1000 \
     --cnn_filter_sizes 3,4,5 \
     --rnn_hidden_dim 128 \
     --rnn_num_layers 3 \
     --rnn_bidirectional True \
     --rnn_type GRU \
     --mlp_hidden_dim 64 \
-    --wandb_project Intro-to-AI-Assignment2
+    --wandb_project Intro-to-AI-Assignment2 \
+    --wandb_disabled

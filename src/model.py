@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.fx
 
 PAD_IDX = 0
 
@@ -53,8 +54,7 @@ class CNN(BaseModel):
         pooled = [p.squeeze(2) for p in pooled]
         cat = torch.cat(pooled, dim=1)
         dropped = self.dropout(cat)
-        logits = self.fc(dropped)
-        return logits
+        return self.fc(dropped)
 
 class RNN(BaseModel):
     def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim,
@@ -96,5 +96,4 @@ class MLP(BaseModel):
         sentence_embedding = summed / non_pad_count
 
         hidden = self.dropout(F.relu(self.fc1(sentence_embedding)))
-        logits = self.fc2(hidden)
-        return logits
+        return self.fc2(hidden)
